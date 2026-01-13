@@ -6,4 +6,6 @@
 .env.local
 .idea/
 .vscode/
+/target
+AGENTS.md
 Thumbs.db

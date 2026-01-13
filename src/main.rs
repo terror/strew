@@ -1,8 +1,8 @@
 use {
   anyhow::Context,
   config::Config,
-  serde::Deserialize,
-  std::{collections::HashMap, fs, path::PathBuf, process},
+  serde::{Deserialize, Serialize},
+  std::{collections::HashMap, process},
 };
 
 mod config;

@@ -1,3 +1,3 @@
 ## strew
 
-A tool to manage your dotfiles.
+**strew** is a tool that helps you manage your dotfiles.

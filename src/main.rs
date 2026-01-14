@@ -1,28 +1,33 @@
 use {
-  anyhow::Context,
+  anyhow::{Context, ensure},
+  arguments::Arguments,
+  clap::Parser,
   config::Config,
   serde::{Deserialize, Serialize},
-  std::{collections::HashMap, process},
+  std::{
+    collections::HashMap,
+    fs,
+    path::{Path, PathBuf},
+    process,
+  },
+  subcommand::Subcommand,
 };
 
+#[cfg(unix)]
+use std::os::unix;
+
+#[cfg(windows)]
+use std::os::windows;
+
+mod arguments;
 mod config;
+mod linker;
+mod subcommand;
 
 type Result<T = (), E = anyhow::Error> = std::result::Result<T, E>;
 
-fn run() -> Result {
-  let config = Config::load()?;
-
-  println!("Loaded {} file entries:", config.files.len());
-
-  for (name, entry) in &config.files {
-    println!("  {}: {} -> {}", name, entry.source, entry.target);
-  }
-
-  Ok(())
-}
-
 fn main() {
-  if let Err(error) = run() {
+  if let Err(error) = Arguments::parse().run() {
     eprintln!("error: {error}");
     process::exit(1);
   }

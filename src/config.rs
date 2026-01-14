@@ -14,8 +14,10 @@ pub struct Entry {
 
 impl Config {
   const APP_NAME: &'static str = "strew";
+  const CONFIG_NAME: &'static str = "config.toml";
 
   pub(crate) fn load() -> Result<Self> {
-    confy::load(Self::APP_NAME, None).context("failed to load config")
+    confy::load(Self::APP_NAME, Self::CONFIG_NAME)
+      .context("failed to load config")
   }
 }

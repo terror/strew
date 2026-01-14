@@ -75,7 +75,10 @@ mod tests {
 
     fs::write(&source, "content").unwrap();
 
-    assert_eq!(State::get(&source, &directory.path().join("link")), State::Missing);
+    assert_eq!(
+      State::get(&source, &directory.path().join("link")),
+      State::Missing
+    );
   }
 
   #[test]

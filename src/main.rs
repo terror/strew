@@ -1,9 +1,10 @@
 use {
-  anyhow::{Context, ensure},
+  anyhow::Context,
   arguments::Arguments,
   clap::Parser,
   config::Config,
   serde::{Deserialize, Serialize},
+  state::State,
   std::{
     collections::HashMap,
     fs,
@@ -13,15 +14,9 @@ use {
   subcommand::Subcommand,
 };
 
-#[cfg(unix)]
-use std::os::unix;
-
-#[cfg(windows)]
-use std::os::windows;
-
 mod arguments;
 mod config;
-mod linker;
+mod state;
 mod subcommand;
 
 type Result<T = (), E = anyhow::Error> = std::result::Result<T, E>;

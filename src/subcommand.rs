@@ -1,17 +1,19 @@
 use super::*;
 
+mod status;
+
 #[derive(Parser)]
 pub(crate) enum Subcommand {
-  /// Create symlinks for all configured entries
-  Link,
   /// Show the status of all configured symlinks
   Status,
-  /// Remove symlinks for all configured entries
-  Unlink,
 }
 
 impl Subcommand {
   pub(crate) fn run(self) -> Result {
-    todo!()
+    let config = Config::load()?;
+
+    match self {
+      Self::Status => status::run(&config),
+    }
   }
 }

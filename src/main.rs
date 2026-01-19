@@ -6,16 +6,21 @@ use {
   state::State,
   std::{
     collections::HashMap,
+    env,
+    fmt::{self, Display, Formatter},
     fs,
+    io::{self, IsTerminal},
     path::{Path, PathBuf},
     process,
   },
+  style::Style,
   subcommand::Subcommand,
 };
 
 mod arguments;
 mod config;
 mod state;
+mod style;
 mod subcommand;
 
 type Result<T = (), E = anyhow::Error> = std::result::Result<T, E>;

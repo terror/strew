@@ -2,10 +2,11 @@ use {
   arguments::Arguments,
   clap::Parser,
   config::Config,
+  link::Link,
+  link_state::LinkState,
   serde::{Deserialize, Serialize},
-  state::State,
   std::{
-    collections::HashMap,
+    collections::BTreeMap,
     env,
     fmt::{self, Display, Formatter},
     fs,
@@ -19,7 +20,8 @@ use {
 
 mod arguments;
 mod config;
-mod state;
+mod link;
+mod link_state;
 mod style;
 mod subcommand;
 

@@ -1,80 +1,56 @@
 use super::*;
 
 pub(crate) fn run(config: &Config) -> Result {
-  let files = config.files();
-
-  if files.is_empty() {
-    return Ok(());
-  }
-
   let style = Style::stdout();
 
-  let (linked, missing, conflicts) = files.iter().fold(
-    (0, 0, 0),
-    |(linked, missing, conflicts), (name, source, target)| match State::get(
-      source, target,
-    ) {
-      State::Linked => {
-        println!(
-          "{} {}: {} -> {}",
-          style.apply(style::GREEN, "[linked]"),
-          style.apply(style::BOLD, name),
-          style.apply(style::CYAN, target.display()),
-          style.apply(style::CYAN, source.display())
-        );
+  println!("{}", style.apply(style::BOLD, "[link]"));
 
-        (linked + 1, missing, conflicts)
-      }
-      State::Missing => {
+  for (name, link) in config.links() {
+    match LinkState::from(link.clone()) {
+      LinkState::Linked => {
         println!(
-          "{} {}: {} {}",
-          style.apply(style::YELLOW, "[missing]"),
-          style.apply(style::BOLD, name),
-          style.apply(style::CYAN, target.display()),
+          "{} {} -> {}",
+          style.apply(style::GREEN, name),
+          style.apply(style::CYAN, link.target.display()),
+          style.apply(style::CYAN, link.source.display())
+        );
+      }
+      LinkState::Missing => {
+        println!(
+          "{} {} {}",
+          style.apply(style::YELLOW, name),
+          style.apply(style::CYAN, link.target.display()),
           style.apply(style::DIM, "(not created)")
         );
-        (linked, missing + 1, conflicts)
       }
-      State::Conflict => {
+      LinkState::Conflict => {
         println!(
-          "{} {}: {} {}",
-          style.apply(style::RED, "[conflict]"),
-          style.apply(style::BOLD, name),
-          style.apply(style::CYAN, target.display()),
+          "{} {} {}",
+          style.apply(style::RED, name),
+          style.apply(style::CYAN, link.target.display()),
           style.apply(style::DIM, "exists but is not a symlink")
         );
-
-        (linked, missing, conflicts + 1)
       }
-      State::Misdirected { actual } => {
+      LinkState::Misdirected { actual } => {
         println!(
-          "{} {}: {} -> {} {}",
-          style.apply(style::RED, "[misdirected]"),
-          style.apply(style::BOLD, name),
-          style.apply(style::CYAN, target.display()),
+          "{} {} -> {} {}",
+          style.apply(style::RED, name),
+          style.apply(style::CYAN, link.target.display()),
           style.apply(style::CYAN, actual.display()),
-          style.apply(style::DIM, format!("(expected {})", source.display()))
+          style
+            .apply(style::DIM, format!("(expected {})", link.source.display()))
         );
-
-        (linked, missing, conflicts + 1)
       }
-      State::SourceMissing => {
+      LinkState::SourceMissing => {
         println!(
-          "{} {}: {} {}",
-          style.apply(style::RED, "[source missing]"),
-          style.apply(style::BOLD, name),
-          style.apply(style::CYAN, source.display()),
+          "{} {} {}",
+          style.apply(style::RED, name),
+          style.apply(style::CYAN, link.source.display()),
           style.apply(style::DIM, "does not exist")
         );
-
-        (linked, missing, conflicts + 1)
       }
-    },
-  );
-
-  println!(
-    "Summary: {linked} linked, {missing} missing, {conflicts} conflicts"
-  );
+    }
+  }
 
   Ok(())
 }

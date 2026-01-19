@@ -1,7 +1,7 @@
 use super::*;
 
 #[derive(Debug, PartialEq)]
-pub(crate) enum State {
+pub(crate) enum LinkState {
   /// Target exists but is not a symlink (file or directory)
   Conflict,
   /// Symlink exists and points to the correct source
@@ -14,25 +14,26 @@ pub(crate) enum State {
   SourceMissing,
 }
 
-impl State {
-  pub(crate) fn get(source: &Path, target: &Path) -> Self {
-    if !source.exists() {
+impl From<Link> for LinkState {
+  fn from(link: Link) -> Self {
+    if !link.source.exists() {
       return Self::SourceMissing;
     }
 
-    fs::symlink_metadata(target)
+    fs::symlink_metadata(&link.target)
       .ok()
       .map_or(Self::Missing, |metadata| {
         if !metadata.file_type().is_symlink() {
           return Self::Conflict;
         }
 
-        fs::read_link(target)
+        fs::read_link(link.target)
           .ok()
           .map_or(Self::Conflict, |link_target| {
-            let canonical_source = source
+            let canonical_source = link
+              .source
               .canonicalize()
-              .unwrap_or_else(|_| source.to_path_buf());
+              .unwrap_or_else(|_| link.source.clone());
 
             let canonical_link = link_target
               .canonicalize()
@@ -59,11 +60,11 @@ mod tests {
     let directory = TempDir::new().unwrap();
 
     assert_eq!(
-      State::get(
-        &directory.path().join("nonexistent"),
-        &directory.path().join("link")
-      ),
-      State::SourceMissing
+      LinkState::from(Link {
+        source: directory.path().join("nonexistent"),
+        target: directory.path().join("link")
+      }),
+      LinkState::SourceMissing
     );
   }
 
@@ -76,8 +77,11 @@ mod tests {
     fs::write(&source, "content").unwrap();
 
     assert_eq!(
-      State::get(&source, &directory.path().join("link")),
-      State::Missing
+      LinkState::from(Link {
+        source,
+        target: directory.path().join("link")
+      }),
+      LinkState::Missing
     );
   }
 
@@ -91,7 +95,10 @@ mod tests {
     fs::write(&source, "source content").unwrap();
     fs::write(&target, "target content").unwrap();
 
-    assert_eq!(State::get(&source, &target), State::Conflict);
+    assert_eq!(
+      LinkState::from(Link { source, target }),
+      LinkState::Conflict
+    );
   }
 
   #[test]
@@ -104,7 +111,10 @@ mod tests {
     fs::write(&source, "content").unwrap();
     fs::create_dir(&target).unwrap();
 
-    assert_eq!(State::get(&source, &target), State::Conflict);
+    assert_eq!(
+      LinkState::from(Link { source, target }),
+      LinkState::Conflict
+    );
   }
 
   #[test]
@@ -115,9 +125,10 @@ mod tests {
     let target = directory.path().join("link");
 
     fs::write(&source, "content").unwrap();
+
     symlink(&source, &target).unwrap();
 
-    assert_eq!(State::get(&source, &target), State::Linked);
+    assert_eq!(LinkState::from(Link { source, target }), LinkState::Linked);
   }
 
   #[test]
@@ -134,8 +145,8 @@ mod tests {
     symlink(&other, &target).unwrap();
 
     assert_eq!(
-      State::get(&source, &target),
-      State::Misdirected { actual: other }
+      LinkState::from(Link { source, target }),
+      LinkState::Misdirected { actual: other }
     );
   }
 }

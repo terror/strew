@@ -11,8 +11,8 @@ pub(crate) fn run(config: &Config) -> Result {
     .map(|(name, entry)| {
       (
         name,
-        PathBuf::from(shellexpand::tilde(&entry.source).as_ref()),
-        PathBuf::from(shellexpand::tilde(&entry.target).as_ref()),
+        config.resolve_path(&entry.source),
+        config.resolve_path(&entry.target),
       )
     })
     .fold(
@@ -22,7 +22,7 @@ pub(crate) fn run(config: &Config) -> Result {
       ) {
         State::Linked => {
           println!(
-            "  [linked] {name}: {} -> {}",
+            "[linked] {name}: {} -> {}",
             target.display(),
             source.display()
           );
@@ -30,12 +30,12 @@ pub(crate) fn run(config: &Config) -> Result {
           (linked + 1, missing, conflicts)
         }
         State::Missing => {
-          println!("  [missing] {name}: {} (not created)", target.display());
+          println!("[missing] {name}: {} (not created)", target.display());
           (linked, missing + 1, conflicts)
         }
         State::Conflict => {
           println!(
-            "  [conflict] {name}: {} exists but is not a symlink",
+            "[conflict] {name}: {} exists but is not a symlink",
             target.display()
           );
 
@@ -43,7 +43,7 @@ pub(crate) fn run(config: &Config) -> Result {
         }
         State::Misdirected { actual } => {
           println!(
-            "  [misdirected] {name}: {} -> {} (expected {})",
+            "[misdirected] {name}: {} -> {} (expected {})",
             target.display(),
             actual.display(),
             source.display()
@@ -53,7 +53,7 @@ pub(crate) fn run(config: &Config) -> Result {
         }
         State::SourceMissing => {
           println!(
-            "  [source missing] {name}: {} does not exist",
+            "[source missing] {name}: {} does not exist",
             source.display()
           );
 

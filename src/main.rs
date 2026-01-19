@@ -1,5 +1,4 @@
 use {
-  anyhow::Context,
   arguments::Arguments,
   clap::Parser,
   config::Config,

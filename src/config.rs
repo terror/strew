@@ -48,3 +48,54 @@ impl Config {
     }
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn resolve_path_absolute() {
+    let config = Config {
+      base_dir: Some(PathBuf::from("/config/dir")),
+      ..Default::default()
+    };
+
+    assert_eq!(config.resolve_path("/absolute/path"), PathBuf::from("/absolute/path"));
+  }
+
+  #[test]
+  fn resolve_path_relative_with_base_dir() {
+    let config = Config {
+      base_dir: Some(PathBuf::from("/config/dir")),
+      ..Default::default()
+    };
+
+    assert_eq!(
+      config.resolve_path("relative/path"),
+      PathBuf::from("/config/dir/relative/path")
+    );
+  }
+
+  #[test]
+  fn resolve_path_relative_without_base_dir() {
+    let config = Config {
+      base_dir: None,
+      ..Default::default()
+    };
+
+    assert_eq!(config.resolve_path("relative/path"), PathBuf::from("relative/path"));
+  }
+
+  #[test]
+  fn resolve_path_tilde_expansion() {
+    let config = Config {
+      base_dir: Some(PathBuf::from("/config/dir")),
+      ..Default::default()
+    };
+
+    let resolved = config.resolve_path("~/some/path");
+
+    assert!(resolved.is_absolute());
+    assert!(resolved.ends_with("some/path"));
+  }
+}

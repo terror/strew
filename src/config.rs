@@ -18,6 +18,20 @@ impl Config {
   const APP_NAME: &'static str = "strew";
   const CONFIG_NAME: &'static str = "config";
 
+  pub(crate) fn files(&self) -> Vec<(&str, PathBuf, PathBuf)> {
+    self
+      .files
+      .iter()
+      .map(|(name, entry)| {
+        (
+          name.as_str(),
+          self.resolve_path(&entry.source),
+          self.resolve_path(&entry.target),
+        )
+      })
+      .collect()
+  }
+
   pub(crate) fn load() -> Result<Self> {
     let config_path =
       confy::get_configuration_file_path(Self::APP_NAME, Self::CONFIG_NAME)?;
@@ -32,7 +46,7 @@ impl Config {
     Ok(Self { base_dir, ..config })
   }
 
-  pub(crate) fn resolve_path(&self, path: &str) -> PathBuf {
+  fn resolve_path(&self, path: &str) -> PathBuf {
     let expanded = shellexpand::tilde(path);
 
     let path = PathBuf::from(expanded.as_ref());
@@ -60,7 +74,10 @@ mod tests {
       ..Default::default()
     };
 
-    assert_eq!(config.resolve_path("/absolute/path"), PathBuf::from("/absolute/path"));
+    assert_eq!(
+      config.resolve_path("/absolute/path"),
+      PathBuf::from("/absolute/path")
+    );
   }
 
   #[test]
@@ -83,7 +100,10 @@ mod tests {
       ..Default::default()
     };
 
-    assert_eq!(config.resolve_path("relative/path"), PathBuf::from("relative/path"));
+    assert_eq!(
+      config.resolve_path("relative/path"),
+      PathBuf::from("relative/path")
+    );
   }
 
   #[test]

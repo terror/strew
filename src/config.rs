@@ -5,28 +5,24 @@ pub struct Config {
   #[serde(skip)]
   pub(crate) base_dir: Option<PathBuf>,
   #[serde(default)]
-  pub(crate) files: HashMap<String, Entry>,
-}
-
-#[derive(Debug, Deserialize, PartialEq, Serialize)]
-pub struct Entry {
-  pub(crate) source: String,
-  pub(crate) target: String,
+  pub(crate) link: BTreeMap<String, Link>,
 }
 
 impl Config {
   const APP_NAME: &'static str = "strew";
   const CONFIG_NAME: &'static str = "config";
 
-  pub(crate) fn files(&self) -> Vec<(&str, PathBuf, PathBuf)> {
+  pub(crate) fn links(&self) -> Vec<(&str, Link)> {
     self
-      .files
+      .link
       .iter()
-      .map(|(name, entry)| {
+      .map(|(name, link)| {
         (
           name.as_str(),
-          self.resolve_path(&entry.source),
-          self.resolve_path(&entry.target),
+          Link {
+            source: self.resolve_path(&link.source),
+            target: self.resolve_path(&link.target),
+          },
         )
       })
       .collect()
@@ -46,20 +42,20 @@ impl Config {
     Ok(Self { base_dir, ..config })
   }
 
-  fn resolve_path(&self, path: &str) -> PathBuf {
-    let expanded = shellexpand::tilde(path);
-
-    let path = PathBuf::from(expanded.as_ref());
+  pub(crate) fn resolve_path<P: AsRef<Path>>(&self, path: P) -> PathBuf {
+    let path = PathBuf::from(
+      shellexpand::tilde(&path.as_ref().display().to_string()).as_ref(),
+    );
 
     if path.is_absolute() {
-      path
-    } else {
-      self
-        .base_dir
-        .as_ref()
-        .map(|base| base.join(&path))
-        .unwrap_or(path)
+      return path;
     }
+
+    self
+      .base_dir
+      .as_ref()
+      .map(|base| base.join(&path))
+      .unwrap_or(path)
   }
 }
 

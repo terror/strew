@@ -303,16 +303,16 @@ fn dry_run() -> Result {
 fn dry_run_link_into_created_directory() -> Result {
   Test::new()?
     .config(indoc! {r#"
-      create = ["~/foo"]
+      create = ["~/foo/bar"]
 
       [link]
-      "~/foo" = "bar"
+      "~/foo" = "baz"
     "#})
-    .file("bar", "")
+    .file("baz", "")
     .argument("--dry-run")
     .absent("foo")
     .expected_status(1)
-    .expected_stdout("[ROOT]/foo: would create\n")
+    .expected_stdout("[ROOT]/foo/bar: would create\n")
     .expected_stderr(indoc! {"
       error: failed to link `[ROOT]/foo`: occupied
       error: 1 of 2 items failed

@@ -73,7 +73,14 @@ impl<'a> Plan<'a> {
 
     let status = match link::status(target, source).with_context(context)? {
       Status::Mismatch(_) if self.removed.contains(target) => Status::Missing,
-      Status::Missing if self.directories.contains(target) => Status::Occupied,
+      Status::Missing
+        if self
+          .directories
+          .iter()
+          .any(|directory| directory.starts_with(target)) =>
+      {
+        Status::Occupied
+      }
       status => status,
     };
 

@@ -62,7 +62,7 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
-  use {super::*, indoc::indoc, tempfile::TempDir};
+  use {super::*, indoc::indoc};
 
   #[test]
   fn empty() {

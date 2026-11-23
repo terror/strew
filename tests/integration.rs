@@ -119,7 +119,10 @@ impl<'a> Test<'a> {
       .output()?;
 
     for path in &self.absent {
-      assert!(!root.join(path).exists(), "expected `{path}` to be absent");
+      assert!(
+        fs::symlink_metadata(root.join(path)).is_err(),
+        "expected `{path}` to be absent"
+      );
     }
 
     for path in &self.expected_directories {
@@ -219,6 +222,21 @@ fn check() -> Result {
 }
 
 #[test]
+fn clean() -> Result {
+  Test::new()?
+    .directory("sub")
+    .file("sub/strew.toml", r#"clean = ["~", "~/missing"]"#)
+    .symlink("bar", "sub/baz")
+    .symlink("qux", "quux")
+    .argument("--config")
+    .argument("sub/strew.toml")
+    .absent("bar")
+    .expected_link("qux", "quux")
+    .expected_stdout("[ROOT]/bar: removed\n")
+    .run()
+}
+
+#[test]
 fn create() -> Result {
   Test::new()?
     .config(r#"create = ["~/foo", "~/bar/baz"]"#)
@@ -250,16 +268,20 @@ fn create_failure() -> Result {
 fn dry_run() -> Result {
   Test::new()?
     .config(indoc! {r#"
+      clean = ["~"]
       create = ["~/qux"]
 
       [link]
       "~/bar/baz" = "foo"
     "#})
     .file("foo", "")
+    .symlink("quux", "corge")
     .argument("--dry-run")
     .absent("bar")
     .absent("qux")
+    .expected_link("quux", "corge")
     .expected_stdout(indoc! {"
+      [ROOT]/quux: would remove
       [ROOT]/qux: would create
       [ROOT]/bar/baz: would create
     "})

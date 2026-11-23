@@ -2,9 +2,10 @@ use super::*;
 
 pub(crate) fn run(config: &Config, dry_run: bool) -> Result {
   let failures = config
-    .create
+    .clean
     .iter()
-    .map(|path| create(path, dry_run))
+    .map(|directory| clean(directory, &config.base, dry_run))
+    .chain(config.create.iter().map(|path| create(path, dry_run)))
     .chain(
       config
         .link
@@ -18,8 +19,47 @@ pub(crate) fn run(config: &Config, dry_run: bool) -> Result {
   if failures > 0 {
     bail!(
       "{failures} of {} items failed",
-      config.create.len() + config.link.len(),
+      config.clean.len() + config.create.len() + config.link.len(),
     );
+  }
+
+  Ok(())
+}
+
+fn clean(directory: &Path, base: &Path, dry_run: bool) -> Result {
+  let context = || format!("failed to clean `{}`", directory.display());
+
+  let entries = match fs::read_dir(directory) {
+    Ok(entries) => entries,
+    Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
+    Err(error) => return Err(error).with_context(context),
+  };
+
+  let mut paths = entries
+    .map(|entry| entry.map(|entry| entry.path()))
+    .collect::<io::Result<Vec<PathBuf>>>()
+    .with_context(context)?;
+
+  paths.sort();
+
+  for path in paths {
+    if !path.is_symlink() || path.try_exists().with_context(context)? {
+      continue;
+    }
+
+    let destination =
+      directory.join(fs::read_link(&path).with_context(context)?);
+
+    if !destination.starts_with(base) {
+      continue;
+    }
+
+    if dry_run {
+      println!("{}: would remove", path.display());
+    } else {
+      fs::remove_file(&path).with_context(context)?;
+      println!("{}: removed", path.display());
+    }
   }
 
   Ok(())

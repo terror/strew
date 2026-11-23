@@ -1,17 +1,47 @@
 use super::*;
 
 pub(crate) fn run(config: &Config, dry_run: bool) -> Result {
-  let mut failures = 0;
-
-  for (target, source) in &config.link {
-    if let Err(error) = link(target, source, dry_run) {
-      eprintln!("error: {error:#}");
-      failures += 1;
-    }
-  }
+  let failures = config
+    .create
+    .iter()
+    .map(|path| create(path, dry_run))
+    .chain(
+      config
+        .link
+        .iter()
+        .map(|(target, source)| link(target, source, dry_run)),
+    )
+    .filter_map(Result::err)
+    .inspect(|error| eprintln!("error: {error:#}"))
+    .count();
 
   if failures > 0 {
-    bail!("{failures} of {} links failed", config.link.len());
+    bail!(
+      "{failures} of {} items failed",
+      config.create.len() + config.link.len(),
+    );
+  }
+
+  Ok(())
+}
+
+fn create(path: &Path, dry_run: bool) -> Result {
+  let context = || format!("failed to create directory `{}`", path.display());
+
+  match fs::symlink_metadata(path) {
+    Ok(_) if path.is_dir() => {
+      println!("{}: exists", path.display());
+    }
+    Ok(_) => bail!("{}: occupied", context()),
+    Err(error) if error.kind() == io::ErrorKind::NotFound => {
+      if dry_run {
+        println!("{}: would create", path.display());
+      } else {
+        fs::create_dir_all(path).with_context(context)?;
+        println!("{}: created", path.display());
+      }
+    }
+    Err(error) => return Err(error).with_context(context),
   }
 
   Ok(())

@@ -62,7 +62,7 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
-  use {super::*, tempfile::TempDir};
+  use {super::*, indoc::indoc, tempfile::TempDir};
 
   #[test]
   fn resolve() {
@@ -85,14 +85,14 @@ mod tests {
   fn parse() {
     assert_eq!(
       Config::parse(
-        r#"
-clean = ["~"]
-create = ["foo"]
-shell = ["bar", ["baz", "qux"]]
+        indoc! {r#"
+          clean = ["~"]
+          create = ["foo"]
+          shell = ["bar", ["baz", "qux"]]
 
-[link]
-"~/foo" = "bar"
-"#,
+          [link]
+          "~/foo" = "bar"
+        "#},
         "/base".into(),
         Path::new("/home"),
       )
@@ -127,12 +127,13 @@ shell = ["bar", ["baz", "qux"]]
       Config::parse("foo = []", "/base".into(), Path::new("/home"))
         .unwrap_err()
         .to_string(),
-      "TOML parse error at line 1, column 1
-  |
-1 | foo = []
-  | ^^^
-unknown field `foo`, expected one of `clean`, `create`, `link`, `shell`
-",
+      indoc! {"
+        TOML parse error at line 1, column 1
+          |
+        1 | foo = []
+          | ^^^
+        unknown field `foo`, expected one of `clean`, `create`, `link`, `shell`
+      "},
     );
   }
 

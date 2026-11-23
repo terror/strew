@@ -65,20 +65,42 @@ mod tests {
   use {super::*, indoc::indoc, tempfile::TempDir};
 
   #[test]
-  fn resolve() {
-    #[track_caller]
-    fn case(path: &str, expected: &str) {
-      assert_eq!(
-        Config::resolve(Path::new("/base"), Path::new("/home"), path.into()),
-        Path::new(expected),
-      );
-    }
+  fn empty() {
+    assert_eq!(
+      Config::parse("", "/base".into(), Path::new("/home")).unwrap(),
+      Config {
+        base: "/base".into(),
+        ..Config::default()
+      },
+    );
+  }
 
-    case("~", "/home");
-    case("~/foo", "/home/foo");
-    case("~foo", "/base/~foo");
-    case("foo", "/base/foo");
-    case("/foo", "/foo");
+  #[test]
+  fn load() {
+    let dir = TempDir::new().unwrap();
+
+    let path = dir.path().join("foo.toml");
+
+    fs::write(&path, "").unwrap();
+
+    assert_eq!(
+      Config::load(&path, Path::new("/home")).unwrap(),
+      Config {
+        base: dir.path().canonicalize().unwrap(),
+        ..Config::default()
+      },
+    );
+  }
+
+  #[test]
+  fn load_missing() {
+    assert_eq!(
+      format!(
+        "{:#}",
+        Config::load(Path::new("foo"), Path::new("/home")).unwrap_err()
+      ),
+      "failed to read config `foo`: No such file or directory (os error 2)",
+    );
   }
 
   #[test]
@@ -111,14 +133,20 @@ mod tests {
   }
 
   #[test]
-  fn empty() {
-    assert_eq!(
-      Config::parse("", "/base".into(), Path::new("/home")).unwrap(),
-      Config {
-        base: "/base".into(),
-        ..Config::default()
-      },
-    );
+  fn resolve() {
+    #[track_caller]
+    fn case(path: &str, expected: &str) {
+      assert_eq!(
+        Config::resolve(Path::new("/base"), Path::new("/home"), path.into()),
+        Path::new(expected),
+      );
+    }
+
+    case("~", "/home");
+    case("~/foo", "/home/foo");
+    case("~foo", "/base/~foo");
+    case("foo", "/base/foo");
+    case("/foo", "/foo");
   }
 
   #[test]
@@ -134,34 +162,6 @@ mod tests {
           | ^^^
         unknown field `foo`, expected one of `clean`, `create`, `link`, `shell`
       "},
-    );
-  }
-
-  #[test]
-  fn load() {
-    let dir = TempDir::new().unwrap();
-
-    let path = dir.path().join("foo.toml");
-
-    fs::write(&path, "").unwrap();
-
-    assert_eq!(
-      Config::load(&path, Path::new("/home")).unwrap(),
-      Config {
-        base: dir.path().canonicalize().unwrap(),
-        ..Config::default()
-      },
-    );
-  }
-
-  #[test]
-  fn load_missing() {
-    assert_eq!(
-      format!(
-        "{:#}",
-        Config::load(Path::new("foo"), Path::new("/home")).unwrap_err()
-      ),
-      "failed to read config `foo`: No such file or directory (os error 2)",
     );
   }
 }

@@ -10,6 +10,7 @@ use {
     env,
     fmt::{self, Display, Formatter},
     fs, io,
+    os::unix::fs::symlink,
     path::{Path, PathBuf},
     process,
   },
@@ -17,8 +18,9 @@ use {
 };
 
 #[cfg(test)]
-use {std::os::unix::fs::symlink, tempfile::TempDir};
+use tempfile::TempDir;
 
+mod apply;
 mod arguments;
 mod config;
 mod link;

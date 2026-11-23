@@ -202,6 +202,7 @@ fn apply_failure() -> Result {
 fn check() -> Result {
   Test::new()?
     .config(indoc! {r#"
+      clean = ["~"]
       create = ["~/qux", "~/quux"]
 
       [link]
@@ -211,15 +212,18 @@ fn check() -> Result {
     .directory("qux")
     .file("foo", "")
     .symlink("bar", "foo")
+    .symlink("corge", "grault")
     .argument("check")
     .expected_status(1)
+    .expected_link("corge", "grault")
     .expected_stdout(indoc! {"
+      [ROOT]/corge: would remove
       [ROOT]/qux: exists
-      [ROOT]/quux: missing
+      [ROOT]/quux: would create
       [ROOT]/bar: linked
-      [ROOT]/baz: missing
+      [ROOT]/baz: would create
     "})
-    .expected_stderr("error: 2 of 4 items need attention\n")
+    .expected_stderr("error: 3 of 5 items need attention\n")
     .run()
 }
 
@@ -268,7 +272,7 @@ fn dry_run() -> Result {
   Test::new()?
     .config(indoc! {r#"
       clean = ["~"]
-      create = ["~/qux"]
+      create = ["~/qux", "~/waldo"]
       shell = ["echo garply"]
 
       [link]
@@ -277,16 +281,41 @@ fn dry_run() -> Result {
     "#})
     .file("foo", "")
     .symlink("quux", "corge")
+    .symlink("waldo", "fred")
     .argument("--dry-run")
     .absent("bar")
     .absent("qux")
     .expected_link("quux", "corge")
+    .expected_link("waldo", "fred")
     .expected_stdout(indoc! {"
       [ROOT]/quux: would remove
+      [ROOT]/waldo: would remove
       [ROOT]/qux: would create
+      [ROOT]/waldo: would create
       [ROOT]/bar/baz: would create
       [ROOT]/quux: would create
       echo garply: would run
+    "})
+    .run()
+}
+
+#[test]
+fn dry_run_link_into_created_directory() -> Result {
+  Test::new()?
+    .config(indoc! {r#"
+      create = ["~/foo"]
+
+      [link]
+      "~/foo" = "bar"
+    "#})
+    .file("bar", "")
+    .argument("--dry-run")
+    .absent("foo")
+    .expected_status(1)
+    .expected_stdout("[ROOT]/foo: would create\n")
+    .expected_stderr(indoc! {"
+      error: failed to link `[ROOT]/foo`: occupied
+      error: 1 of 2 items failed
     "})
     .run()
 }

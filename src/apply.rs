@@ -23,6 +23,12 @@ pub(crate) fn run(config: &Config, dry_run: bool) -> Result {
         .iter()
         .map(|(target, source)| link(target, source, &removed, dry_run)),
     )
+    .chain(
+      config
+        .shell
+        .iter()
+        .map(|shell| run_shell(shell, &config.base, dry_run)),
+    )
     .filter_map(Result::err)
     .inspect(report)
     .count();
@@ -30,7 +36,10 @@ pub(crate) fn run(config: &Config, dry_run: bool) -> Result {
   if failures > 0 {
     bail!(
       "{failures} of {} items failed",
-      config.clean.len() + config.create.len() + config.link.len(),
+      config.clean.len()
+        + config.create.len()
+        + config.link.len()
+        + config.shell.len(),
     );
   }
 
@@ -127,6 +136,30 @@ fn link(
       println!("{}: created", target.display());
     }
     status => bail!("{}: {status}", context()),
+  }
+
+  Ok(())
+}
+
+fn run_shell(shell: &Shell, base: &Path, dry_run: bool) -> Result {
+  if dry_run {
+    println!("{}: would run", shell.label());
+    return Ok(());
+  }
+
+  println!("{}: running", shell.label());
+
+  let context = || format!("failed to run `{}`", shell.command());
+
+  let status = Command::new("sh")
+    .arg("-c")
+    .arg(shell.command())
+    .current_dir(base)
+    .status()
+    .with_context(context)?;
+
+  if !status.success() {
+    bail!("{}: {status}", context());
   }
 
   Ok(())

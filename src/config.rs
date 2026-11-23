@@ -18,6 +18,21 @@ pub(crate) enum Shell {
   Described(String, String),
 }
 
+impl Shell {
+  pub(crate) fn command(&self) -> &str {
+    match self {
+      Self::Command(command) | Self::Described(command, _) => command,
+    }
+  }
+
+  pub(crate) fn label(&self) -> &str {
+    match self {
+      Self::Command(command) => command,
+      Self::Described(_, description) => description,
+    }
+  }
+}
+
 impl Config {
   pub(crate) fn load(path: &Path, home: &Path) -> Result<Self> {
     let text = fs::read_to_string(path)

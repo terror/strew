@@ -2,7 +2,7 @@ use {
   anyhow::{Context, bail},
   arguments::Arguments,
   clap::Parser,
-  config::Config,
+  config::{Config, Shell},
   link::Status,
   serde::Deserialize,
   std::{
@@ -12,7 +12,7 @@ use {
     fs, io,
     os::unix::fs::symlink,
     path::{Path, PathBuf},
-    process,
+    process::{self, Command},
   },
   subcommand::Subcommand,
 };

@@ -235,7 +235,7 @@ fn create() -> Result {
 fn create_failure() -> Result {
   Test::new()?
     .config(r#"create = ["~/foo", "~/bar"]"#)
-    .file("foo", "")
+    .symlink("foo", "baz")
     .expected_directory("bar")
     .expected_status(1)
     .expected_stdout("[ROOT]/bar: created\n")

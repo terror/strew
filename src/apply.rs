@@ -28,8 +28,8 @@ pub(crate) fn run(config: &Config, dry_run: bool) -> Result {
 fn create(path: &Path, dry_run: bool) -> Result {
   let context = || format!("failed to create directory `{}`", path.display());
 
-  match fs::metadata(path) {
-    Ok(metadata) if metadata.is_dir() => {
+  match fs::symlink_metadata(path) {
+    Ok(_) if path.is_dir() => {
       println!("{}: exists", path.display());
     }
     Ok(_) => bail!("{}: occupied", context()),

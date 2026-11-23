@@ -205,19 +205,24 @@ fn apply_failure() -> Result {
 fn check() -> Result {
   Test::new()?
     .config(indoc! {r#"
+      create = ["~/qux", "~/quux"]
+
       [link]
       "~/bar" = "foo"
       "~/baz" = "foo"
     "#})
+    .directory("qux")
     .file("foo", "")
     .symlink("bar", "foo")
     .argument("check")
     .expected_status(1)
     .expected_stdout(indoc! {"
+      [ROOT]/qux: exists
+      [ROOT]/quux: missing
       [ROOT]/bar: linked
       [ROOT]/baz: missing
     "})
-    .expected_stderr("error: 1 of 2 links not linked\n")
+    .expected_stderr("error: 2 of 4 items need attention\n")
     .run()
 }
 

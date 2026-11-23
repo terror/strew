@@ -6,7 +6,7 @@ use {
   link::Status,
   serde::Deserialize,
   std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     env,
     fmt::{self, Display, Formatter},
     fs, io,

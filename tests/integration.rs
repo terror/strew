@@ -273,6 +273,7 @@ fn dry_run() -> Result {
 
       [link]
       "~/bar/baz" = "foo"
+      "~/quux" = "foo"
     "#})
     .file("foo", "")
     .symlink("quux", "corge")
@@ -284,6 +285,7 @@ fn dry_run() -> Result {
       [ROOT]/quux: would remove
       [ROOT]/qux: would create
       [ROOT]/bar/baz: would create
+      [ROOT]/quux: would create
     "})
     .run()
 }

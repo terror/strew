@@ -23,6 +23,7 @@ use tempfile::TempDir;
 mod apply;
 mod arguments;
 mod config;
+mod directory;
 mod link;
 mod subcommand;
 

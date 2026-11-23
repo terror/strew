@@ -3,6 +3,18 @@ use super::*;
 pub(crate) fn run(config: &Config) -> Result {
   let mut failures = 0;
 
+  for path in &config.create {
+    let status = directory::status(path).with_context(|| {
+      format!("failed to check directory `{}`", path.display())
+    })?;
+
+    if status != directory::Status::Exists {
+      failures += 1;
+    }
+
+    println!("{}: {status}", path.display());
+  }
+
   for (target, source) in &config.link {
     let status = link::status(target, source).with_context(|| {
       format!("failed to check link `{}`", target.display())
@@ -16,7 +28,10 @@ pub(crate) fn run(config: &Config) -> Result {
   }
 
   if failures > 0 {
-    bail!("{failures} of {} links not linked", config.link.len());
+    bail!(
+      "{failures} of {} items need attention",
+      config.create.len() + config.link.len(),
+    );
   }
 
   Ok(())

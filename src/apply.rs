@@ -94,20 +94,16 @@ fn clean(directory: &Path, base: &Path, dry_run: bool) -> Result<Vec<PathBuf>> {
 fn create(path: &Path, dry_run: bool) -> Result {
   let context = || format!("failed to create directory `{}`", path.display());
 
-  match fs::symlink_metadata(path) {
-    Ok(_) if path.is_dir() => {
-      println!("{}: exists", path.display());
+  match directory::status(path).with_context(context)? {
+    directory::Status::Exists => println!("{}: exists", path.display()),
+    directory::Status::Missing if dry_run => {
+      println!("{}: would create", path.display());
     }
-    Ok(_) => bail!("{}: occupied", context()),
-    Err(error) if error.kind() == io::ErrorKind::NotFound => {
-      if dry_run {
-        println!("{}: would create", path.display());
-      } else {
-        fs::create_dir_all(path).with_context(context)?;
-        println!("{}: created", path.display());
-      }
+    directory::Status::Missing => {
+      fs::create_dir_all(path).with_context(context)?;
+      println!("{}: created", path.display());
     }
-    Err(error) => return Err(error).with_context(context),
+    status => bail!("{}: {status}", context()),
   }
 
   Ok(())

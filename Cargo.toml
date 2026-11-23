@@ -1,7 +1,20 @@
 [package]
 name = "strew"
 version = "0.1.0"
+description = "A tool to manage your dotfiles"
+authors = ["Liam <liam@scalzulli.com>"]
+license = "CC0-1.0"
+repository = "https://github.com/terror/strew"
 edition = "2024"
+categories = ["command-line-utilities"]
+keywords = ["dotfiles", "symlinks"]
+
+include = [
+  "/LICENSE",
+  "/README.md",
+  "/src/",
+  "/tests/",
+]
 
 [dependencies]
 anyhow = "1.0.105"

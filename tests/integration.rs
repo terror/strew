@@ -270,6 +270,7 @@ fn dry_run() -> Result {
     .config(indoc! {r#"
       clean = ["~"]
       create = ["~/qux"]
+      shell = ["echo garply"]
 
       [link]
       "~/bar/baz" = "foo"
@@ -286,6 +287,40 @@ fn dry_run() -> Result {
       [ROOT]/qux: would create
       [ROOT]/bar/baz: would create
       [ROOT]/quux: would create
+      echo garply: would run
+    "})
+    .run()
+}
+
+#[test]
+fn shell() -> Result {
+  Test::new()?
+    .directory("sub")
+    .file("sub/strew.toml", r#"shell = ["pwd", ["echo foo", "bar"]]"#)
+    .argument("--config")
+    .argument("sub/strew.toml")
+    .expected_stdout(indoc! {"
+      pwd: running
+      [ROOT]/sub
+      bar: running
+      foo
+    "})
+    .run()
+}
+
+#[test]
+fn shell_failure() -> Result {
+  Test::new()?
+    .config(r#"shell = ["false", "echo foo"]"#)
+    .expected_status(1)
+    .expected_stdout(indoc! {"
+      false: running
+      echo foo: running
+      foo
+    "})
+    .expected_stderr(indoc! {"
+      error: failed to run `false`: exit status: 1
+      error: 1 of 2 items failed
     "})
     .run()
 }

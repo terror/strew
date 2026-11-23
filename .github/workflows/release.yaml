@@ -14,6 +14,9 @@ defaults:
   run:
     shell: bash
 
+permissions:
+  contents: write
+
 env:
   RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
   RUSTFLAGS: --deny warnings

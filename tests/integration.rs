@@ -11,6 +11,8 @@ type Result<T = (), E = Error> = std::result::Result<T, E>;
 struct Test<'a> {
   absent: Vec<&'a str>,
   arguments: Vec<String>,
+  directories: Vec<&'a str>,
+  expected_directories: Vec<&'a str>,
   expected_links: Vec<(&'a str, &'a str)>,
   expected_status: i32,
   expected_stderr: String,
@@ -35,6 +37,18 @@ impl<'a> Test<'a> {
 
   fn config(self, config: &'a str) -> Self {
     self.file("strew.toml", config)
+  }
+
+  fn directory(mut self, path: &'a str) -> Self {
+    self.directories.push(path);
+
+    self
+  }
+
+  fn expected_directory(mut self, path: &'a str) -> Self {
+    self.expected_directories.push(path);
+
+    self
   }
 
   fn expected_link(mut self, target: &'a str, source: &'a str) -> Self {
@@ -71,6 +85,8 @@ impl<'a> Test<'a> {
     Ok(Self {
       absent: Vec::new(),
       arguments: Vec::new(),
+      directories: Vec::new(),
+      expected_directories: Vec::new(),
       expected_links: Vec::new(),
       expected_status: 0,
       expected_stderr: String::new(),
@@ -83,6 +99,10 @@ impl<'a> Test<'a> {
 
   fn run(self) -> Result {
     let root = self.tempdir.path().canonicalize()?;
+
+    for path in &self.directories {
+      fs::create_dir(root.join(path))?;
+    }
 
     for (path, content) in &self.files {
       fs::write(root.join(path), content)?;
@@ -100,6 +120,13 @@ impl<'a> Test<'a> {
 
     for path in &self.absent {
       assert!(!root.join(path).exists(), "expected `{path}` to be absent");
+    }
+
+    for path in &self.expected_directories {
+      assert!(
+        root.join(path).is_dir(),
+        "expected `{path}` to be a directory"
+      );
     }
 
     for (target, source) in &self.expected_links {
@@ -166,7 +193,7 @@ fn apply_failure() -> Result {
     .expected_stdout("[ROOT]/baz: created\n")
     .expected_stderr(indoc! {"
       error: failed to link `[ROOT]/bar`: occupied
-      error: 1 of 2 links failed
+      error: 1 of 2 items failed
     "})
     .run()
 }
@@ -192,15 +219,49 @@ fn check() -> Result {
 }
 
 #[test]
+fn create() -> Result {
+  Test::new()?
+    .config(r#"create = ["~/foo", "~/bar/baz"]"#)
+    .directory("foo")
+    .expected_directory("bar/baz")
+    .expected_stdout(indoc! {"
+      [ROOT]/foo: exists
+      [ROOT]/bar/baz: created
+    "})
+    .run()
+}
+
+#[test]
+fn create_failure() -> Result {
+  Test::new()?
+    .config(r#"create = ["~/foo", "~/bar"]"#)
+    .file("foo", "")
+    .expected_directory("bar")
+    .expected_status(1)
+    .expected_stdout("[ROOT]/bar: created\n")
+    .expected_stderr(indoc! {"
+      error: failed to create directory `[ROOT]/foo`: occupied
+      error: 1 of 2 items failed
+    "})
+    .run()
+}
+
+#[test]
 fn dry_run() -> Result {
   Test::new()?
     .config(indoc! {r#"
+      create = ["~/qux"]
+
       [link]
       "~/bar/baz" = "foo"
     "#})
     .file("foo", "")
     .argument("--dry-run")
     .absent("bar")
-    .expected_stdout("[ROOT]/bar/baz: would create\n")
+    .absent("qux")
+    .expected_stdout(indoc! {"
+      [ROOT]/qux: would create
+      [ROOT]/bar/baz: would create
+    "})
     .run()
 }

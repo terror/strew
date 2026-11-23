@@ -9,7 +9,9 @@ use {
 type Result<T = (), E = Error> = std::result::Result<T, E>;
 
 struct Test<'a> {
+  absent: Vec<&'a str>,
   arguments: Vec<String>,
+  expected_links: Vec<(&'a str, &'a str)>,
   expected_status: i32,
   expected_stderr: String,
   expected_stdout: String,
@@ -19,6 +21,12 @@ struct Test<'a> {
 }
 
 impl<'a> Test<'a> {
+  fn absent(mut self, path: &'a str) -> Self {
+    self.absent.push(path);
+
+    self
+  }
+
   fn argument(mut self, argument: &str) -> Self {
     self.arguments.push(argument.to_owned());
 
@@ -27,6 +35,12 @@ impl<'a> Test<'a> {
 
   fn config(self, config: &'a str) -> Self {
     self.file("strew.toml", config)
+  }
+
+  fn expected_link(mut self, target: &'a str, source: &'a str) -> Self {
+    self.expected_links.push((target, source));
+
+    self
   }
 
   fn expected_status(mut self, expected_status: i32) -> Self {
@@ -55,7 +69,9 @@ impl<'a> Test<'a> {
 
   fn new() -> Result<Self> {
     Ok(Self {
+      absent: Vec::new(),
       arguments: Vec::new(),
+      expected_links: Vec::new(),
       expected_status: 0,
       expected_stderr: String::new(),
       expected_stdout: String::new(),
@@ -81,6 +97,14 @@ impl<'a> Test<'a> {
       .current_dir(&root)
       .env("HOME", &root)
       .output()?;
+
+    for path in &self.absent {
+      assert!(!root.join(path).exists(), "expected `{path}` to be absent");
+    }
+
+    for (target, source) in &self.expected_links {
+      assert_eq!(fs::read_link(root.join(target))?, root.join(source));
+    }
 
     let root = root.display().to_string();
 
@@ -110,6 +134,44 @@ impl<'a> Test<'a> {
 }
 
 #[test]
+fn apply() -> Result {
+  Test::new()?
+    .config(indoc! {r#"
+      [link]
+      "~/bar" = "foo"
+      "~/baz/qux" = "foo"
+    "#})
+    .file("foo", "")
+    .symlink("bar", "foo")
+    .expected_link("baz/qux", "foo")
+    .expected_stdout(indoc! {"
+      [ROOT]/bar: linked
+      [ROOT]/baz/qux: created
+    "})
+    .run()
+}
+
+#[test]
+fn apply_failure() -> Result {
+  Test::new()?
+    .config(indoc! {r#"
+      [link]
+      "~/bar" = "foo"
+      "~/baz" = "foo"
+    "#})
+    .file("foo", "")
+    .file("bar", "")
+    .expected_link("baz", "foo")
+    .expected_status(1)
+    .expected_stdout("[ROOT]/baz: created\n")
+    .expected_stderr(indoc! {"
+      error: failed to link `[ROOT]/bar`: occupied
+      error: 1 of 2 links failed
+    "})
+    .run()
+}
+
+#[test]
 fn check() -> Result {
   Test::new()?
     .config(indoc! {r#"
@@ -126,5 +188,19 @@ fn check() -> Result {
       [ROOT]/baz: missing
     "})
     .expected_stderr("error: 1 of 2 links not linked\n")
+    .run()
+}
+
+#[test]
+fn dry_run() -> Result {
+  Test::new()?
+    .config(indoc! {r#"
+      [link]
+      "~/bar/baz" = "foo"
+    "#})
+    .file("foo", "")
+    .argument("--dry-run")
+    .absent("bar")
+    .expected_stdout("[ROOT]/bar/baz: would create\n")
     .run()
 }

@@ -23,6 +23,14 @@ impl Display for Status {
   }
 }
 
+pub(crate) fn create(target: &Path, source: &Path) -> io::Result<()> {
+  if let Some(parent) = target.parent() {
+    fs::create_dir_all(parent)?;
+  }
+
+  symlink(source, target)
+}
+
 pub(crate) fn status(target: &Path, source: &Path) -> io::Result<Status> {
   if !source.try_exists()? {
     return Ok(Status::SourceMissing);

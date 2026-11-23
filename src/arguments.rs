@@ -4,6 +4,8 @@ use super::*;
 pub(crate) struct Arguments {
   #[arg(long, default_value = "strew.toml")]
   config: PathBuf,
+  #[arg(long)]
+  dry_run: bool,
   #[command(subcommand)]
   subcommand: Option<Subcommand>,
 }
@@ -14,10 +16,9 @@ impl Arguments {
 
     let config = Config::load(&self.config, &home)?;
 
-    if let Some(subcommand) = self.subcommand {
-      subcommand.run(&config)?;
+    match self.subcommand {
+      Some(subcommand) => subcommand.run(&config),
+      None => apply::run(&config, self.dry_run),
     }
-
-    Ok(())
   }
 }

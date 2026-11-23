@@ -1,9 +1,11 @@
 use {
+  action::Action,
   anyhow::{Context, bail},
   arguments::Arguments,
   clap::Parser,
   config::{Config, Shell},
   link::Status,
+  plan::Plan,
   serde::Deserialize,
   std::{
     collections::{BTreeMap, BTreeSet},
@@ -20,11 +22,13 @@ use {
 #[cfg(test)]
 use tempfile::TempDir;
 
+mod action;
 mod apply;
 mod arguments;
 mod config;
 mod directory;
 mod link;
+mod plan;
 mod subcommand;
 
 type Result<T = (), E = anyhow::Error> = std::result::Result<T, E>;

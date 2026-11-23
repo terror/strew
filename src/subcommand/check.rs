@@ -1,37 +1,30 @@
 use super::*;
 
 pub(crate) fn run(config: &Config) -> Result {
+  let plan = Plan::new(config, false);
+
   let mut failures = 0;
 
-  for path in &config.create {
-    let status = directory::status(path).with_context(|| {
-      format!("failed to check directory `{}`", path.display())
-    })?;
+  for item in &plan.items {
+    match item {
+      Ok(actions) => {
+        for action in actions {
+          action.print(true);
+        }
 
-    if status != directory::Status::Exists {
-      failures += 1;
+        if actions.iter().any(Action::changes) {
+          failures += 1;
+        }
+      }
+      Err(error) => {
+        eprintln!("error: {error:#}");
+        failures += 1;
+      }
     }
-
-    println!("{}: {status}", path.display());
-  }
-
-  for (target, source) in &config.link {
-    let status = link::status(target, source).with_context(|| {
-      format!("failed to check link `{}`", target.display())
-    })?;
-
-    if status != Status::Linked {
-      failures += 1;
-    }
-
-    println!("{}: {status}", target.display());
   }
 
   if failures > 0 {
-    bail!(
-      "{failures} of {} items need attention",
-      config.create.len() + config.link.len(),
-    );
+    bail!("{failures} of {} items need attention", plan.items.len());
   }
 
   Ok(())

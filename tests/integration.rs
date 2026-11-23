@@ -174,10 +174,7 @@ fn apply() -> Result {
     .file("foo", "")
     .symlink("bar", "foo")
     .expected_link("baz/qux", "foo")
-    .expected_stdout(indoc! {"
-      [ROOT]/bar: linked
-      [ROOT]/baz/qux: created
-    "})
+    .expected_stdout("[ROOT]/baz/qux: created\n")
     .run()
 }
 
@@ -247,10 +244,7 @@ fn create() -> Result {
     .config(r#"create = ["~/foo", "~/bar/baz"]"#)
     .directory("foo")
     .expected_directory("bar/baz")
-    .expected_stdout(indoc! {"
-      [ROOT]/foo: exists
-      [ROOT]/bar/baz: created
-    "})
+    .expected_stdout("[ROOT]/bar/baz: created\n")
     .run()
 }
 
@@ -326,6 +320,26 @@ fn shell_failure() -> Result {
     .expected_stderr(indoc! {"
       error: failed to run `false`: exit status: 1
       error: 1 of 2 items failed
+    "})
+    .run()
+}
+
+#[test]
+fn verbose() -> Result {
+  Test::new()?
+    .config(indoc! {r#"
+      create = ["~/foo"]
+
+      [link]
+      "~/bar" = "baz"
+    "#})
+    .directory("foo")
+    .file("baz", "")
+    .symlink("bar", "baz")
+    .argument("--verbose")
+    .expected_stdout(indoc! {"
+      [ROOT]/foo: exists
+      [ROOT]/bar: linked
     "})
     .run()
 }

@@ -1,6 +1,6 @@
 use super::*;
 
-pub(crate) fn run(config: &Config, dry_run: bool) -> Result {
+pub(crate) fn run(config: &Config, dry_run: bool, verbose: bool) -> Result {
   let mut removed = BTreeSet::new();
 
   let mut failures = config
@@ -13,25 +13,23 @@ pub(crate) fn run(config: &Config, dry_run: bool) -> Result {
     .inspect(report)
     .count();
 
-  failures += config
-    .create
-    .iter()
-    .map(|path| create(path, dry_run))
-    .chain(
-      config
-        .link
-        .iter()
-        .map(|(target, source)| link(target, source, &removed, dry_run)),
-    )
-    .chain(
-      config
-        .shell
-        .iter()
-        .map(|shell| run_shell(shell, &config.base, dry_run)),
-    )
-    .filter_map(Result::err)
-    .inspect(report)
-    .count();
+  failures +=
+    config
+      .create
+      .iter()
+      .map(|path| create(path, dry_run, verbose))
+      .chain(config.link.iter().map(|(target, source)| {
+        link(target, source, &removed, dry_run, verbose)
+      }))
+      .chain(
+        config
+          .shell
+          .iter()
+          .map(|shell| run_shell(shell, &config.base, dry_run)),
+      )
+      .filter_map(Result::err)
+      .inspect(report)
+      .count();
 
   if failures > 0 {
     bail!(
@@ -91,11 +89,14 @@ fn clean(directory: &Path, base: &Path, dry_run: bool) -> Result<Vec<PathBuf>> {
   Ok(removed)
 }
 
-fn create(path: &Path, dry_run: bool) -> Result {
+fn create(path: &Path, dry_run: bool, verbose: bool) -> Result {
   let context = || format!("failed to create directory `{}`", path.display());
 
   match directory::status(path).with_context(context)? {
-    directory::Status::Exists => println!("{}: exists", path.display()),
+    directory::Status::Exists if verbose => {
+      println!("{}: exists", path.display());
+    }
+    directory::Status::Exists => {}
     directory::Status::Missing if dry_run => {
       println!("{}: would create", path.display());
     }
@@ -114,6 +115,7 @@ fn link(
   source: &Path,
   removed: &BTreeSet<PathBuf>,
   dry_run: bool,
+  verbose: bool,
 ) -> Result {
   let context = || format!("failed to link `{}`", target.display());
 
@@ -123,7 +125,8 @@ fn link(
   };
 
   match status {
-    Status::Linked => println!("{}: linked", target.display()),
+    Status::Linked if verbose => println!("{}: linked", target.display()),
+    Status::Linked => {}
     Status::Missing if dry_run => {
       println!("{}: would create", target.display());
     }

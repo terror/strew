@@ -372,3 +372,11 @@ fn verbose() -> Result {
     "})
     .run()
 }
+
+#[test]
+fn version() -> Result {
+  Test::new()?
+    .argument("--version")
+    .expected_stdout(&format!("strew {}\n", env!("CARGO_PKG_VERSION")))
+    .run()
+}

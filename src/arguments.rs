@@ -1,6 +1,7 @@
 use super::*;
 
 #[derive(Parser)]
+#[command(version)]
 pub(crate) struct Arguments {
   #[arg(long, default_value = "strew.toml")]
   config: PathBuf,

@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.1](https://github.com/terror/strew/releases/tag/0.1.1) - 2026-11-23
+
+### Added
+
+- Add `--version` ([#22](https://github.com/terror/strew/pull/22) by [terror](https://github.com/terror))
+
+### Changed
+
+- Plan actions before performing them ([#21](https://github.com/terror/strew/pull/21) by [terror](https://github.com/terror))
+
+### Misc
+
+- Grant release workflow permission to create releases ([#20](https://github.com/terror/strew/pull/20) by [terror](https://github.com/terror))
+
 ## [0.1.0](https://github.com/terror/strew/releases/tag/0.1.0) - 2026-11-23
 
 ### Added

@@ -16,7 +16,7 @@ pub(crate) fn run(config: &Config, dry_run: bool, verbose: bool) -> Result {
       })
     })
     .filter_map(Result::err)
-    .inspect(|error| eprintln!("error: {error:#}"))
+    .inspect(print_error)
     .count();
 
   if failures > 0 {

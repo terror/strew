@@ -17,7 +17,7 @@ pub(crate) fn run(config: &Config) -> Result {
         }
       }
       Err(error) => {
-        eprintln!("error: {error:#}");
+        print_error(error);
         failures += 1;
       }
     }

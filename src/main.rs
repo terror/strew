@@ -1,5 +1,6 @@
 use {
   action::Action,
+  anstyle::{AnsiColor, Style},
   anyhow::{Context, bail},
   arguments::Arguments,
   clap::Parser,
@@ -33,9 +34,14 @@ mod subcommand;
 
 type Result<T = (), E = anyhow::Error> = std::result::Result<T, E>;
 
+fn print_error(error: &anyhow::Error) {
+  let style = AnsiColor::Red.on_default().bold();
+  anstream::eprintln!("{style}error{style:#}: {error:#}");
+}
+
 fn main() {
   if let Err(error) = Arguments::parse().run() {
-    eprintln!("error: {error:#}");
+    print_error(&error);
     process::exit(1);
   }
 }

@@ -12,6 +12,7 @@ struct Test<'a> {
   absent: Vec<&'a str>,
   arguments: Vec<String>,
   directories: Vec<&'a str>,
+  env: Vec<(&'a str, &'a str)>,
   expected_directories: Vec<&'a str>,
   expected_links: Vec<(&'a str, &'a str)>,
   expected_status: i32,
@@ -41,6 +42,12 @@ impl<'a> Test<'a> {
 
   fn directory(mut self, path: &'a str) -> Self {
     self.directories.push(path);
+
+    self
+  }
+
+  fn env(mut self, key: &'a str, value: &'a str) -> Self {
+    self.env.push((key, value));
 
     self
   }
@@ -86,6 +93,7 @@ impl<'a> Test<'a> {
       absent: Vec::new(),
       arguments: Vec::new(),
       directories: Vec::new(),
+      env: Vec::new(),
       expected_directories: Vec::new(),
       expected_links: Vec::new(),
       expected_status: 0,
@@ -116,6 +124,7 @@ impl<'a> Test<'a> {
       .args(&self.arguments)
       .current_dir(&root)
       .env("HOME", &root)
+      .envs(self.env.iter().copied())
       .output()?;
 
     for path in &self.absent {
@@ -239,6 +248,33 @@ fn clean() -> Result {
     .absent("bar")
     .expected_link("qux", "quux")
     .expected_stdout("[ROOT]/bar: removed\n")
+    .run()
+}
+
+#[test]
+fn color() -> Result {
+  Test::new()?
+    .config(indoc! {r#"
+      [link]
+      "~/bar" = "foo"
+      "~/baz" = "foo"
+      "~/qux" = "foo"
+    "#})
+    .file("foo", "")
+    .file("bar", "")
+    .symlink("baz", "foo")
+    .env("CLICOLOR_FORCE", "1")
+    .argument("--verbose")
+    .expected_link("qux", "foo")
+    .expected_status(1)
+    .expected_stdout(indoc! {"
+      [ROOT]/baz: \u{1b}[2mlinked\u{1b}[0m
+      [ROOT]/qux: \u{1b}[32mcreated\u{1b}[0m
+    "})
+    .expected_stderr(indoc! {"
+      \u{1b}[1m\u{1b}[31merror\u{1b}[0m: failed to link `[ROOT]/bar`: occupied
+      \u{1b}[1m\u{1b}[31merror\u{1b}[0m: 1 of 3 items failed
+    "})
     .run()
 }
 

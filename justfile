@@ -52,7 +52,7 @@ publish:
 
 [group: 'dev']
 run *args:
-  cargo run -- --{{args}}
+  cargo run {{ args }}
 
 [group: 'test']
 test:
@@ -72,4 +72,4 @@ update-changelog:
 
 [group: 'dev']
 watch +COMMAND='test':
-  cargo watch --clear --exec "{{COMMAND}}"
+  cargo watch --clear --exec "{{ COMMAND }}"

@@ -69,6 +69,15 @@ impl Action<'_> {
       (Self::Run(_), false) => "running",
     };
 
-    println!("{subject}: {status}");
+    let style = match self {
+      Self::CreateDirectory(_) | Self::CreateLink { .. } => {
+        AnsiColor::Green.on_default()
+      }
+      Self::Exists(_) | Self::Linked(_) => Style::new().dimmed(),
+      Self::Remove(_) => AnsiColor::Red.on_default(),
+      Self::Run(_) => AnsiColor::Cyan.on_default(),
+    };
+
+    anstream::println!("{subject}: {style}{status}{style:#}");
   }
 }
